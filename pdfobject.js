@@ -39,6 +39,7 @@
         //declare functions
         createAXO,
         isIE,
+        isNewerFF,
         supportsPdfMimeType = (typeof navigator.mimeTypes['application/pdf'] !== "undefined"),
         supportsPdfActiveX,
         buildFragmentString,
@@ -73,12 +74,23 @@
     //Constructed as a method (not a prop) to avoid unneccesarry overhead -- will only be evaluated if needed
     isIE = function (){ return !!(window.ActiveXObject || "ActiveXObject" in window); };
 
+    isNewerFF = function(){
+        var ua = navigator.userAgent.match(/firefox(?=\/)\/?\s*(\d+)/i) || [];
+
+        // but not firefox on mobile
+        if (navigator.userAgent.match(/Android|BlackBerry|iPhone|iPad|iPod|Windows Phone/i)) {
+            return false;
+        }
+
+        return typeof ua[0] !== 'undefined' && ua[1] >= 19;
+    };
+
     //If either ActiveX support for "AcroPDF.PDF" or "PDF.PdfCtrl" are found, return true
     //Constructed as a method (not a prop) to avoid unneccesarry overhead -- will only be evaluated if needed
     supportsPdfActiveX = function (){ return !!(createAXO("AcroPDF.PDF") || createAXO("PDF.PdfCtrl")); };
 
     //Determines whether PDF support is available
-    supportsPDFs = (supportsPdfMimeType || (isIE() && supportsPdfActiveX()));
+    supportsPDFs = (supportsPdfMimeType || (isIE() && supportsPdfActiveX()) || isNewerFF());
 
     //Create a fragment identifier for using PDF Open parameters when embedding PDF
     buildFragmentString = function(pdfParams){
@@ -155,7 +167,11 @@
         var fullURL = PDFJS_URL + "?file=" + encodeURIComponent(url) + pdfOpenFragment;
         var scrollfix = (isIOS) ? "-webkit-overflow-scrolling: touch; overflow-y: scroll; " : "overflow: hidden; ";
         var iframe = "<div style='" + scrollfix + "position: absolute; top: 0; right: 0; bottom: 0; left: 0;'><iframe  " + id + " src='" + fullURL + "' style='border: none; width: 100%; height: 100%;' frameborder='0'></iframe></div>";
-        targetNode.className += " pdfobject-container";
+
+        if (!targetNode.className.match(/pdfobject-container/)){
+            targetNode.className += " pdfobject-container";
+        }
+
         targetNode.style.position = "relative";
         targetNode.style.overflow = "auto";
         targetNode.innerHTML = iframe;
